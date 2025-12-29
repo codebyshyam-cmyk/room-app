@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth import login,logout,authenticate
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
 """rooms = [
     {'id': 1,
      'name':"lets learn python"
@@ -20,9 +21,15 @@ from django.contrib.auth.decorators import login_required
 ]"""
 
 def loginPage(request):
+    page = 'login'
+    if request.user.is_authenticated:
+        return redirect("home")
+    
     if request.method == 'POST':
-        username= request.POST.get('username')
-        password = request.POST.get('password')
+        username= request.POST.get('username').lower()
+        password = request.POST.get('password').lower()
+        
+        
         
         user = authenticate(request,username = username, password = password)
         if user is not None:
@@ -30,7 +37,23 @@ def loginPage(request):
             return redirect('home')
         else :
             messages.error(request,'username or password doesnt exit')
-    context = {}
+    context = {'page':page}
+    return render(request,'base/login_register.html',context)
+
+def register(request):
+    page = 'logout'
+    form = UserCreationForm()
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.username = user.username.lower()
+            user.save()
+            login(request,user)
+            return redirect('login-room')
+        else :
+            messages.error(request,'an error occured during registration')
+    context={'form':form}
     return render(request,'base/login_register.html',context)
 
 def home(request):
@@ -41,7 +64,8 @@ def home(request):
                                 Q(host__username__icontains=q)) 
     topic = Topic.objects.all()
     room_count=rooms.count()
-    context = {'rooms':rooms,'topics':topic,'room_count':room_count}
+    message = rooms.message_set.all()
+    context = {'rooms':rooms,'topics':topic,'room_count':room_count,'messages':message}
     return render(request,'base/home.html',context)
 
 def room(request,pk):
@@ -62,9 +86,14 @@ def createRoom(request):
     context = {'form':form}
     return render(request,'base/room_form.html',context)
 
+@login_required(login_url= 'login-room')
 def updateRoom(request,pk):
     room = Room.objects.get(id=pk)
     form = RoomForm(instance=room)
+    
+    if request.user != room.host:
+            return HttpResponse("you are not allowed here")
+    
     if request.method == 'POST':
         form = RoomForm(request.POST,instance=room)
         if form.is_valid():
@@ -73,8 +102,13 @@ def updateRoom(request,pk):
     context = {'form':form}
     return render(request,'base/room_form.html',context)
 
+@login_required(login_url= 'login-room')
 def deleteRoom(request,pk):
     room = Room.objects.get(id=pk)
+    
+    if request.user != room.host:
+            return HttpResponse("you are not allowed here")
+    
     if request.method == 'POST':
         room.delete()
         return redirect('home')
