@@ -7,8 +7,20 @@
 <div class="comment-wrapper">
     <h3>conversations</h3>
     <hr>
-    {% for message in messages %}
-        {{ message }}
+    <div>{% for message in room_message %}
+        <small>@{{ message.user }} {{ message.created|timesince }}</small>
+        <p>{{ message.body }}</p>
+        <hr>
     {% endfor %}
+    </div>
+    {% if user.is_authenticated %}
+    <div>
+        <form action="" method="post">
+            {% csrf_token %}
+            <input type="text" name="body" placeholder="write your message here">
+            <input type="submit" value="post your message ">
+        </form>
+    </div>
+    {% endif %}
 </div>
 {% endblock content %}

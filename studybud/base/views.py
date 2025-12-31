@@ -64,13 +64,14 @@ def home(request):
                                 Q(host__username__icontains=q)) 
     topic = Topic.objects.all()
     room_count=rooms.count()
-    message = rooms.message_set.all()
-    context = {'rooms':rooms,'topics':topic,'room_count':room_count,'messages':message}
+
+    context = {'rooms':rooms,'topics':topic,'room_count':room_count}
     return render(request,'base/home.html',context)
 
 def room(request,pk):
-    room = Room.objects.get(id=pk)
-    context = {'room':room}
+    rooms = Room.objects.get(id=pk)
+    room_message = rooms.message_set.all().order_by('-created')
+    context = {'room':rooms,'room_message':room_message}
     return render(request,'base/room.html',context=context)
 
 
